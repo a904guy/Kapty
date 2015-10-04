@@ -3,7 +3,10 @@ __project__ = 'Kapty'
 __version__ = "0.0.1"
 __license__ = "CC-BY-SA"
 
+from pprint import pprint
+
 import requests
+
 
 # Base URL of Website
 BASE_URL = 'https://kat.cr'
@@ -102,6 +105,7 @@ CATEGORY = {
 
 # When Added
 ADDED = {
+	'ANY': 'Any time',
 	'LAST_HOUR': 'hour',
 	'LAST_DAY': '24h',
 	'LAST_WEEK': 'week',
@@ -304,7 +308,43 @@ class KatSearch(object):
 		return self
 
 	def run(self):
-		result = requests.post("%s/advanced/" % BASE_URL, {
-			'all': self._allWords
-		})
-		print(result.content)
+		r = requests.Session()
+
+		post = {
+			'all': ' '.join(self._allWords),
+			'exact': ' '.join(self._exactWords),
+			'or': ' '.join(self._anyWords),
+			'sub': ' '.join(self._notWords),
+			'category': self._category or CATEGORY['ANY'],
+			'user': self._user,
+			'seeds': self._minSeeds,
+			'age': self._whenAdded or ADDED['ANY'],
+			'files': self._numFiles,
+			'imdb': self._imdbId,
+			'tv': self._tvRangeId,
+			'isbn': self._ISBN,
+			'lang_sel': self._language or LANGUAGE['ANY'],
+			'season': self._season,
+			'episode': self._episode,
+			'platform_id': self._platform or PLATFORM['ANY']
+		}
+
+		headers = {
+			':host': 'kat.cr',
+			':method': 'POST',
+			':path': '/advanced/',
+			':scheme': 'https',
+			':version': 'HTTP/1.1',
+			'accept': 'text/html,application/xhtml+xml,application/xml;0.9,image/webp,*/*;q = 0.8',
+			'accept-encoding': 'gzip, deflate',
+			'accept-language': 'en-US,en',
+			'cache-control': 'no-cache',
+			'content-type': 'application/x-www-form-urlencoded',
+			'origin': 'https://kat.cr',
+			'pragma': 'no-cache',
+			'referer': 'https://kat.cr/',
+			'upgrade-insecure-requests': 1
+		}
+		result = r.post("%s/advanced/" % BASE_URL, data=post, headers=headers)
+		print('Response Code %i' % result.status_code)
+		pprint(result.text)
