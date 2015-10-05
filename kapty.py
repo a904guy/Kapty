@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
+import logging
+
+import requests
+from bs4 import BeautifulSoup
+
 __project__ = 'Kapty'
 __version__ = "0.0.1"
 __license__ = "CC-BY-SA"
 
-from pprint import pprint
-
-import requests
-
+log = logging.getLogger('Kapty')
 
 # Base URL of Website
 BASE_URL = 'https://kat.cr'
@@ -308,13 +310,14 @@ class KatSearch(object):
 		return self
 
 	def run(self):
+
 		r = requests.Session()
 
 		post = {
-			'all': ' '.join(self._allWords),
-			'exact': ' '.join(self._exactWords),
-			'or': ' '.join(self._anyWords),
-			'sub': ' '.join(self._notWords),
+			'all': ' '.join(self._allWords) + ' ',
+			'exact': ' '.join(self._exactWords) + ' ',
+			'or': ' '.join(self._anyWords) + ' ',
+			'sub': ' '.join(self._notWords) + ' ',
 			'category': self._category or CATEGORY['ANY'],
 			'user': self._user,
 			'seeds': self._minSeeds,
@@ -329,22 +332,56 @@ class KatSearch(object):
 			'platform_id': self._platform or PLATFORM['ANY']
 		}
 
+		log.debug("Search Start \n{ %s }", ", ".join(['%s: %s \n' % (value, post[value]) for n, value in enumerate(post)]))
+
 		headers = {
 			':host': 'kat.cr',
 			':method': 'POST',
 			':path': '/advanced/',
 			':scheme': 'https',
 			':version': 'HTTP/1.1',
-			'accept': 'text/html,application/xhtml+xml,application/xml;0.9,image/webp,*/*;q = 0.8',
+			'accept': 'text/html,application/xhtml+xml,application/xml;0.9,image/webp,*/*;q=0.8',
 			'accept-encoding': 'gzip, deflate',
 			'accept-language': 'en-US,en',
 			'cache-control': 'no-cache',
 			'content-type': 'application/x-www-form-urlencoded',
 			'origin': 'https://kat.cr',
 			'pragma': 'no-cache',
-			'referer': 'https://kat.cr/',
+			'thanks': 'https://kat.cr/',
 			'upgrade-insecure-requests': 1
 		}
 		result = r.post("%s/advanced/" % BASE_URL, data=post, headers=headers)
-		print('Response Code %i' % result.status_code)
-		pprint(result.text)
+		log.debug('Response Code %i' % result.status_code)
+		if result.status_code == requests.codes.ok:
+
+			# TODO: Determine if Movie or TV Result
+
+			soup = BeautifulSoup(result.text, 'html.parser')
+			return KatSearchResult(soup.find('table', {'class': 'data'}), post)
+
+		elif result.status_code == '404':
+			return KatSearchResult([], post)
+
+
+class KatBaseResult:
+	_query = None
+	_raw = None
+	_results = []
+	_total = 0
+	_page = 1
+
+	def __init__(self, raw, query):
+		self._raw = raw
+		self._query = query
+
+
+class KatSearchResult(KatBaseResult):
+	pass
+
+
+class KatTVSearchResult(KatBaseResult):
+	pass
+
+
+class KatMovieSearchResult(KatBaseResult):
+	pass
