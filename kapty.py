@@ -17,12 +17,13 @@ BASE_URL = 'http://katproxy.com'
 BASE_SCHEME = 'http'
 BASE_HOSTNAME = 'katproxy.com'
 BASE_SEARCH_URI = '/advanced/'
+BASE_VERIFIED = False
 
 
 # SWITCH (joke) Defaults
 # Category DICT for semantic-ish code
 class CATEGORY:
-	ANY = 0
+	ANY = '0'
 	ANIME = 'anime'
 	ANIME_MUSIC_VIDEO = 'amv'
 	ANIME_ENGLISH = 'english-translated'
@@ -327,13 +328,20 @@ class KatSearch(object):
 
 	def run(self):
 
+		global BASE_VERIFIED
+
+		if BASE_VERIFIED is False:
+			verify = requests.get(BASE_URL)
+			RedefineGlobals(verify.url)
+			BASE_VERIFIED = True
+
 		r = requests.Session()
 
 		post = {
-			'all': ' '.join(self._allWords) + ' ',
-			'exact': ' '.join(self._exactWords) + ' ',
-			'or': ' '.join(self._anyWords) + ' ',
-			'sub': ' '.join(self._notWords) + ' ',
+			'all': ' '.join(self._allWords),
+			'exact': ' '.join(self._exactWords),
+			'or': ' '.join(self._anyWords),
+			'sub': ' '.join(self._notWords),
 			'category': self._category or CATEGORY.ANY,
 			'user': self._user,
 			'seeds': self._minSeeds,
@@ -373,6 +381,7 @@ class KatSearch(object):
 			# TODO: Determine if Movie or TV Result
 
 			soup = BeautifulSoup(result.text, 'html.parser')
+			print(len(soup.find('table', {'class': 'data'})))
 			return KatSearchResult(soup.find('table', {'class': 'data'}), post)
 
 		elif result.status_code == '404':
