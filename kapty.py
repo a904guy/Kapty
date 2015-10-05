@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import logging
+from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,7 +12,11 @@ __license__ = "CC-BY-SA"
 log = logging.getLogger('Kapty')
 
 # Base URL of Website
-BASE_URL = 'https://kat.cr'
+# BASE_URL = 'https://kat.cr'
+BASE_URL = 'http://katproxy.com'
+BASE_SCHEME = 'http'
+BASE_HOSTNAME = 'katproxy.com'
+BASE_SEARCH_URI = '/advanced/'
 
 # SWITCH (joke) Defaults
 
@@ -203,6 +208,14 @@ def Search():
 	return KatSearch()
 
 
+def RedefineGlobals(url):
+	global BASE_URL, BASE_SCHEME, BASE_HOSTNAME
+	parts = urlparse(url)
+	BASE_URL = '%s://%s' % (parts.scheme, parts.netloc)
+	BASE_SCHEME = '%s' % parts.scheme
+	BASE_HOSTNAME = '%s' % parts.netloc
+
+
 class KatSearch(object):
 	# String search
 	_allWords = []
@@ -335,22 +348,22 @@ class KatSearch(object):
 		log.debug("Search Start \n{ %s }", ", ".join(['%s: %s \n' % (value, post[value]) for n, value in enumerate(post)]))
 
 		headers = {
-			':host': 'kat.cr',
+			':host': '%s' % BASE_HOSTNAME,
 			':method': 'POST',
-			':path': '/advanced/',
-			':scheme': 'https',
+			':path': '%s' % BASE_SEARCH_URI,
+			':scheme': '%s' % BASE_SCHEME,
 			':version': 'HTTP/1.1',
 			'accept': 'text/html,application/xhtml+xml,application/xml;0.9,image/webp,*/*;q=0.8',
 			'accept-encoding': 'gzip, deflate',
 			'accept-language': 'en-US,en',
 			'cache-control': 'no-cache',
 			'content-type': 'application/x-www-form-urlencoded',
-			'origin': 'https://kat.cr',
+			'origin': '%s' % BASE_URL,
 			'pragma': 'no-cache',
-			'thanks': 'https://kat.cr/',
+			'thanks': '%s/' % BASE_URL,
 			'upgrade-insecure-requests': 1
 		}
-		result = r.post("%s/advanced/" % BASE_URL, data=post, headers=headers)
+		result = r.post("%s%s" % (BASE_URL, BASE_SEARCH_URI), data=post, headers=headers)
 		log.debug('Response Code %i' % result.status_code)
 		if result.status_code == requests.codes.ok:
 
@@ -379,9 +392,9 @@ class KatSearchResult(KatBaseResult):
 	pass
 
 
-class KatTVSearchResult(KatBaseResult):
+class KatTVResult(KatBaseResult):
 	pass
 
 
-class KatMovieSearchResult(KatBaseResult):
+class KatMovieResult(KatBaseResult):
 	pass
